@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timed Word Search</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 12px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    h1 { margin: 0 0 6px; font-size: 28px; }
+    h2 { margin: 0 0 4px; }
+    p { color: #475569; margin: 6px 0; }
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .timer {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: white;
+      border-radius: 16px;
+      padding: 10px 16px;
+      font-size: 28px;
+      font-weight: bold;
+      min-width: 110px;
+      width: fit-content;
+    }
+    .controls {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 16px;
+    }
+    button {
+      cursor: pointer;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 14px;
+      background: #0f172a;
+      color: white;
+      font-weight: bold;
+      font-size: 15px;
+    }
+    button.secondary {
+      background: white;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .tab { background: #e2e8f0; color: #0f172a; }
+    .tab.active { background: #0f172a; color: white; }
+    .status {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .grid-wrap {
+      overflow-x: auto;
+      background: #e2e8f0;
+      border-radius: 16px;
+      padding: 10px;
+      -webkit-overflow-scrolling: touch;
+      touch-action: none;
+      user-select: none;
+    }
+    .letter-grid {
+      display: grid;
+      gap: 4px;
+      width: max-content;
+      margin: 0 auto;
+    }
+    .cell {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 16px;
+      color: #0f172a;
+      box-shadow: 0 1px 2px rgba(0,0,0,.12);
+    }
+    .cell.selected { background: #cbd5e1; }
+    .cell.found { background: #bbf7d0; }
+    .word-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .word {
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .word.done {
+      background: #dcfce7;
+      color: #166534;
+      text-decoration: line-through;
+    }
+    .table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    th { background: #f8fafc; }
+    .small { font-size: 13px; color: #64748b; }
+    .success { color: #15803d; font-weight: bold; }
+    .warning { color: #b45309; font-weight: bold; }
+    @media (min-width: 700px) {
+      body { padding: 24px; }
+      h1 { font-size: 38px; }
+      .topbar { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+      .controls { grid-template-columns: 1fr auto auto; align-items: center; }
+      .status { flex-direction: row; align-items: center; justify-content: space-between; }
+      .cell { width: 38px; height: 38px; font-size: 20px; }
+      .word-list { grid-template-columns: repeat(5, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="topbar">
+        <div>
+          <h1>Timed Word Search</h1>
+          <p>Choose Music or No Music. Find as many words as possible before the 3-minute timer ends.</p>
+        </div>
+        <div class="timer" id="timer">3:00</div>
+      </div>
+      <div class="controls">
+        <input id="participant" placeholder="Participant name or number, optional" />
+        <button id="startBtn">Start Timer</button>
+        <button class="secondary" id="resetBtn">Reset Puzzle</button>
+      </div>
+      <p class="small" id="saveStatus">Results will save to this page and can also send to Google Sheets after you add your Apps Script URL.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="musicTab">Music</button>
+      <button class="tab" id="noMusicTab">No Music</button>
+    </div>
+
+    <div class="card">
+      <div class="status">
+        <div>
+          <h2 id="puzzleTitle">Music</h2>
+          <p id="foundCount">Words found: 0 / 15</p>
+        </div>
+        <div id="doneStatus"></div>
+      </div>
+      <div class="grid-wrap">
+        <div class="letter-grid" id="letterGrid"></div>
+      </div>
+      <div class="word-list" id="wordList"></div>
+    </div>
+
+    <div class="card">
+      <div class="status">
+        <div>
+          <h2>Timing History</h2>
+          <p class="small">This table saves on the current device. Google Sheets will collect shared class results once connected.</p>
+        </div>
+        <div>
+          <button id="exportBtn">Export CSV</button>
+          <button class="secondary" id="clearBtn">Clear</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Participant</th>
+              <th>Puzzle</th>
+              <th>Words</th>
+              <th>Time Used</th>
+              <th>Completed?</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr><td colspan="6">No results yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+const GOOGLE_SCRIPT_URL = ""; // Paste your Google Apps Script Web App URL between the quotes.
+
+const PUZZLES = {
+  Music: {
+    name: "Music",
+    words: ["BIODIVERSITY","CEDAR","CONSERVATION","EAGLE","ECOLOGY","ESTUARY","HABITAT","HERON","OTTER","PLANKTON","RESTORATION","RIPARIAN","SALMON","SEDIMENTATION","TROUT"],
+    grid: [
+      "TNAIRAPIRMIAJOLBLC",
+      "MFYIVXYNOMLASUKFIH",
+      "NULASFHEOWQSXCWFEF",
+      "OTXEOULMRRBEWLNOSA",
+      "IYDBBGUKDABVOHZXTF",
+      "TUPRAOAVDRDZCNCVUT",
+      "AFDEYASWGHNEOINEAP",
+      "TYFWAZZQTWNTCLFCRG",
+      "NGIOTTERMPKEXFBOYL",
+      "ETVGKGDCXNGKJHHLGR",
+      "MTUZNOITAROTSEROKI",
+      "IHYOXALLYIVPVEGGZJ",
+      "DPXQRFPQRPPFRYOYXB",
+      "EZVMATTIGKUAKCBLID",
+      "SKAHFRYTISREVIDOIB",
+      "BLPIXZVLMDVNOREHIE",
+      "QNOITAVRESNOCRFIFK",
+      "USHCWWDAPLTATIBAHU"
+    ]
+  },
+  NoMusic: {
+    name: "No Music",
+    words: ["ACCURACY","ATTENTION","COMPLETION","CONCENTRATION","DISTRACTION","FOCUSED","LISTENING","LYRICS","MEMORIZE","PATTERNS","PROBLEM","REACTION","SEARCHING","SILENCE","THINKING"],
+    grid: [
+      "SNOITCARTSIDPVVGTZ",
+      "NENNSQKKEKWRIXKSGZ",
+      "OFOCUSEDMAOVKYEGMJ",
+      "IGAZKIBZBBCMPALJEW",
+      "TDASHWOALHPTRNAUMU",
+      "AYOTFBUEYJLCITXMOR",
+      "ROKHTNMXVXHYTOJQRP",
+      "TACCURACYICERDNMIL",
+      "NRCATUXFNTNMNIIQZJ",
+      "EQKXEYPGHTGBTSCWEY",
+      "CFGHDJKGIPADEESSIE",
+      "NUCZXPCOQUXITCVMMN",
+      "OFNFDVNQVYRBWBODRF",
+      "CUJGNIKNIHTQNTYQTP",
+      "IIMOSJDAWDBQQFRYQO",
+      "CUHGNINETSILVOBFWH",
+      "FECNELISCOMPLETION",
+      "POCIAVSNRETTAPAAVA"
+    ]
+  }
+};
+
+const TIMER_SECONDS = 180;
+const STORAGE_KEY = "wordSearchResultsShared";
+let activePuzzleName = "Music";
+let started = false;
+let timeLeft = TIMER_SECONDS;
+let timerInterval = null;
+let found = {};
+let startCell = null;
+let endCell = null;
+let selectedCells = [];
+let results = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+let resultSavedForRun = false;
+
+const timerEl = document.getElementById("timer");
+const participantEl = document.getElementById("participant");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const musicTab = document.getElementById("musicTab");
+const noMusicTab = document.getElementById("noMusicTab");
+const puzzleTitle = document.getElementById("puzzleTitle");
+const foundCount = document.getElementById("foundCount");
+const doneStatus = document.getElementById("doneStatus");
+const gridEl = document.getElementById("letterGrid");
+const wordListEl = document.getElementById("wordList");
+const resultsBody = document.getElementById("resultsBody");
+const exportBtn = document.getElementById("exportBtn");
+const clearBtn = document.getElementById("clearBtn");
+const saveStatus = document.getElementById("saveStatus");
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function getLineCells(start, end) {
+  if (!start || !end) return [];
+  const dr = Math.sign(end.r - start.r);
+  const dc = Math.sign(end.c - start.c);
+  const rowDiff = Math.abs(end.r - start.r);
+  const colDiff = Math.abs(end.c - start.c);
+  if (!(start.r === end.r || start.c === end.c || rowDiff === colDiff)) return [];
+  const len = Math.max(rowDiff, colDiff) + 1;
+  return Array.from({ length: len }, (_, i) => ({ r: start.r + dr * i, c: start.c + dc * i }));
+}
+
+function cellsToWord(grid, cells) {
+  return cells.map(({r, c}) => grid[r]?.[c] || "").join("");
+}
+
+function currentPuzzle() {
+  return PUZZLES[activePuzzleName];
+}
+
+function updateTabs() {
+  musicTab.classList.toggle("active", activePuzzleName === "Music");
+  noMusicTab.classList.toggle("active", activePuzzleName === "NoMusic");
+}
+
+function renderGrid() {
+  const puzzle = currentPuzzle();
+  gridEl.style.gridTemplateColumns = `repeat(${puzzle.grid[0].length}, 1fr)`;
+  gridEl.innerHTML = "";
+  puzzle.grid.forEach((row, r) => {
+    row.split("").forEach((letter, c) => {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.textContent = letter;
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      cell.dataset.pos = `${r}-${c}`;
+      cell.addEventListener("mousedown", () => handleCellDown(r, c));
+      cell.addEventListener("mouseenter", () => handleCellEnter(r, c));
+      cell.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        handleCellDown(r, c);
+      }, {passive:false});
+      cell.addEventListener("touchmove", handleTouchMove, {passive:false});
+      gridEl.appendChild(cell);
+    });
+  });
+  refreshCellStyles();
+}
+
+function renderWords() {
+  const puzzle = currentPuzzle();
+  wordListEl.innerHTML = "";
+  puzzle.words.forEach(word => {
+    const div = document.createElement("div");
+    div.className = "word" + (found[word] ? " done" : "");
+    div.textContent = (found[word] ? "✓ " : "") + word;
+    wordListEl.appendChild(div);
+  });
+}
+
+function renderResults() {
+  if (!results.length) {
+    resultsBody.innerHTML = `<tr><td colspan="6">No results yet.</td></tr>`;
+    return;
+  }
+  resultsBody.innerHTML = results.map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.participant}</td>
+      <td>${r.puzzle}</td>
+      <td>${r.wordsFound}/${r.totalWords}</td>
+      <td>${r.timeUsedSeconds}s</td>
+      <td>${r.completedAllWords ? "Yes" : "No"}</td>
+    </tr>
+  `).join("");
+}
+
+function refreshCellStyles() {
+  document.querySelectorAll(".cell").forEach(cell => {
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+    const isSelected = selectedCells.some(x => x.r === r && x.c === c);
+    const isFound = Object.values(found).some(cells => cells.some(x => x.r === r && x.c === c));
+    cell.classList.toggle("selected", isSelected);
+    cell.classList.toggle("found", isFound);
+  });
+}
+
+function renderAll() {
+  const puzzle = currentPuzzle();
+  timerEl.textContent = formatTime(timeLeft);
+  puzzleTitle.textContent = puzzle.name;
+  foundCount.textContent = `Words found: ${Object.keys(found).length} / ${puzzle.words.length}`;
+  updateTabs();
+  renderGrid();
+  renderWords();
+  renderResults();
+  const isDone = timeLeft === 0 || Object.keys(found).length === puzzle.words.length;
+  doneStatus.innerHTML = isDone && started ? `<span class="success">Result saved</span>` : "";
+}
+
+function startTimer() {
+  if (started) return;
+  started = true;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft = Math.max(0, timeLeft - 1);
+    timerEl.textContent = formatTime(timeLeft);
+    if (timeLeft === 0) finishRun();
+  }, 1000);
+}
+
+function resetPuzzle(name = activePuzzleName) {
+  activePuzzleName = name;
+  started = false;
+  resultSavedForRun = false;
+  timeLeft = TIMER_SECONDS;
+  found = {};
+  startCell = null;
+  endCell = null;
+  selectedCells = [];
+  clearInterval(timerInterval);
+  timerInterval = null;
+  renderAll();
+}
+
+function handleCellDown(r, c) {
+  if (timeLeft === 0) return;
+  startTimer();
+  startCell = {r, c};
+  endCell = {r, c};
+  selectedCells = getLineCells(startCell, endCell);
+  refreshCellStyles();
+}
+
+function handleCellEnter(r, c) {
+  if (!startCell || timeLeft === 0) return;
+  endCell = {r, c};
+  selectedCells = getLineCells(startCell, endCell);
+  refreshCellStyles();
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (!el || !el.classList.contains("cell")) return;
+  handleCellEnter(Number(el.dataset.r), Number(el.dataset.c));
+}
+
+function finishSelection() {
+  if (!startCell || !endCell || timeLeft === 0) return;
+  const puzzle = currentPuzzle();
+  const cells = getLineCells(startCell, endCell);
+  const selected = cellsToWord(puzzle.grid, cells);
+  const reversed = selected.split("").reverse().join("");
+  const match = puzzle.words.find(word => word === selected || word === reversed);
+  if (match && !found[match]) {
+    found[match] = cells;
+    if (Object.keys(found).length === puzzle.words.length) finishRun();
+  }
+  startCell = null;
+  endCell = null;
+  selectedCells = [];
+  renderAll();
+}
+
+async function sendToGoogleSheets(record) {
+  if (!GOOGLE_SCRIPT_URL) {
+    saveStatus.innerHTML = `<span class="warning">Saved locally only. Add your Google Apps Script URL to save to Sheets.</span>`;
+    return;
+  }
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify(record)
+    });
+    saveStatus.innerHTML = `<span class="success">Result sent to Google Sheets.</span>`;
+  } catch (error) {
+    saveStatus.innerHTML = `<span class="warning">Could not send to Google Sheets, but it saved locally.</span>`;
+  }
+}
+
+function finishRun() {
+  if (resultSavedForRun) return;
+  resultSavedForRun = true;
+  clearInterval(timerInterval);
+  const puzzle = currentPuzzle();
+  const record = {
+    id: Date.now() + "-" + Math.random().toString(16).slice(2),
+    date: new Date().toLocaleString(),
+    participant: participantEl.value.trim() || "Anonymous",
+    puzzle: puzzle.name,
+    wordsFound: Object.keys(found).length,
+    totalWords: puzzle.words.length,
+    timeUsedSeconds: TIMER_SECONDS - timeLeft,
+    timeRemainingSeconds: timeLeft,
+    completedAllWords: Object.keys(found).length === puzzle.words.length,
+    words: Object.keys(found).sort().join("; ")
+  };
+  results = [record, ...results];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+  sendToGoogleSheets(record);
+  renderAll();
+}
+
+function exportCSV() {
+  const headers = ["date","participant","puzzle","wordsFound","totalWords","timeUsedSeconds","timeRemainingSeconds","completedAllWords","words"];
+  const rows = results.map(r => headers.map(h => `"${String(r[h] || "").replaceAll('"','""')}"`).join(","));
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "word-search-results.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+startBtn.addEventListener("click", startTimer);
+resetBtn.addEventListener("click", () => resetPuzzle());
+musicTab.addEventListener("click", () => resetPuzzle("Music"));
+noMusicTab.addEventListener("click", () => resetPuzzle("NoMusic"));
+gridEl.addEventListener("mouseup", finishSelection);
+gridEl.addEventListener("mouseleave", finishSelection);
+gridEl.addEventListener("touchend", finishSelection);
+exportBtn.addEventListener("click", exportCSV);
+clearBtn.addEventListener("click", () => {
+  if (!confirm("Clear saved results on this device?")) return;
+  results = [];
+  localStorage.removeItem(STORAGE_KEY);
+  renderResults();
+});
+
+renderAll();
+</script>
+</body>
+</html>
