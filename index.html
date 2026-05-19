@@ -1,226 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timed Word Search</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f1f5f9;
-      color: #0f172a;
-      padding: 12px;
-    }
-    .container { max-width: 1000px; margin: 0 auto; }
-    .card {
-      background: white;
-      border-radius: 18px;
-      padding: 10px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.08);
-    }
-    h1 { margin: 0 0 6px; font-size: 28px; }
-    h2 { margin: 0 0 4px; }
-    p { color: #475569; margin: 6px 0; }
-    .topbar {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .timer {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: #0f172a;
-      color: white;
-      border-radius: 16px;
-      padding: 10px 16px;
-      font-size: 28px;
-      font-weight: bold;
-      min-width: 110px;
-      width: fit-content;
-    }
-    .controls {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
-    }
-    input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 12px;
-      font-size: 16px;
-    }
-    button {
-      cursor: pointer;
-      border: 0;
-      border-radius: 12px;
-      padding: 11px 14px;
-      background: #0f172a;
-      color: white;
-      font-weight: bold;
-      font-size: 15px;
-    }
-    button.secondary {
-      background: white;
-      color: #0f172a;
-      border: 1px solid #cbd5e1;
-    }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .tab { background: #e2e8f0; color: #0f172a; }
-    .tab.active { background: #0f172a; color: white; }
-    .status {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .grid-wrap {
-      overflow-x: auto;
-      background: #e2e8f0;
-      border-radius: 8px;
-      padding: 2px;
-      -webkit-overflow-scrolling: touch;
-      touch-action: none;
-      user-select: none;
-    }
-  .letter-grid {
-  display: grid;
-  gap: 0px;
-  width: max-content;
-  margin: 0 auto;
-}
-    .cell {
-      width: min(5vw, 24px);
-      height: min(5vw, 24px);
-      border-radius: 7px;
-      background: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: "Courier New", monospace;
-      font-weight: bold;
-      font-size: min(3vw, 13px);
-      color: #0f172a;
-      box-shadow: 0 1px 2px rgba(0,0,0,.12);
-    }
-    .cell.selected { background: #cbd5e1; }
-    .cell.found { background: #bbf7d0; }
-    .word-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 14px;
-    }
-    .word {
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 12px;
-      font-weight: bold;
-      font-size: 13px;
-    }
-    .word.done {
-      background: #dcfce7;
-      color: #166534;
-      text-decoration: line-through;
-    }
-    .table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 14px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
-    th { background: #f8fafc; }
-    .small { font-size: 13px; color: #64748b; }
-    .success { color: #15803d; font-weight: bold; }
-    .warning { color: #b45309; font-weight: bold; }
-    @media (min-width: 700px) {
-      body { padding: 24px; }
-      h1 { font-size: 38px; }
-      .topbar { flex-direction: row; align-items: flex-end; justify-content: space-between; }
-      .controls { grid-template-columns: 1fr auto auto; align-items: center; }
-      .status { flex-direction: row; align-items: center; justify-content: space-between; }
-      .cell { width: 38px; height: 38px; font-size: 20px; }
-      .word-list { grid-template-columns: repeat(5, 1fr); }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card">
-      <div class="topbar">
-        <div>
-          <h1>Timed Word Search</h1>
-          <p>Choose Music or No Music. Find as many words as possible before the 3-minute timer ends.</p>
-        </div>
-        <div class="timer" id="timer">3:00</div>
-      </div>
-      <div class="controls">
-        <input id="participant" placeholder="Participant name or number, optional" />
-        <button id="startBtn">Start Timer</button>
-        <button class="secondary" id="resetBtn">Reset Puzzle</button>
-      </div>
-      <p class="small" id="saveStatus">Results will save to this page and can also send to Google Sheets after you add your Apps Script URL.</p>
-    </div>
-
-    <div class="tabs">
-      <button class="tab active" id="musicTab">Music</button>
-      <button class="tab" id="noMusicTab">No Music</button>
-    </div>
-
-    <div class="card">
-      <div class="status">
-        <div>
-          <h2 id="puzzleTitle">Music</h2>
-          <p id="foundCount">Words found: 0 / 15</p>
-        </div>
-        <div id="doneStatus"></div>
-      </div>
-      <div class="grid-wrap">
-        <div class="letter-grid" id="letterGrid"></div>
-      </div>
-      <div class="word-list" id="wordList"></div>
-    </div>
-
-    <div class="card">
-      <div class="status">
-        <div>
-          <h2>Timing History</h2>
-          <p class="small">This table saves on the current device. Google Sheets will collect shared class results once connected.</p>
-        </div>
-        <div>
-          <button id="exportBtn">Export CSV</button>
-          <button class="secondary" id="clearBtn">Clear</button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Participant</th>
-              <th>Puzzle</th>
-              <th>Words</th>
-              <th>Time Used</th>
-              <th>Completed?</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody">
-            <tr><td colspan="6">No results yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-<script>
-const GOOGLE_SCRIPT_URL = ""; // Paste your Google Apps Script Web App URL between the quotes.
+import React, { useEffect, useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Download, RotateCcw, Trophy, Clock, CheckCircle2 } from "lucide-react";
 
 const PUZZLES = {
   Music: {
     name: "Music",
-    words: ["BIODIVERSITY","CEDAR","CONSERVATION","EAGLE","ECOLOGY","ESTUARY","HABITAT","HERON","OTTER","PLANKTON","RESTORATION","RIPARIAN","SALMON","SEDIMENTATION","TROUT"],
+    words: [
+      "BIODIVERSITY", "CEDAR", "CONSERVATION", "EAGLE", "ECOLOGY",
+      "ESTUARY", "HABITAT", "HERON", "OTTER", "PLANKTON",
+      "RESTORATION", "RIPARIAN", "SALMON", "SEDIMENTATION", "TROUT"
+    ],
     grid: [
       "TNAIRAPIRMIAJOLBLC",
       "MFYIVXYNOMLASUKFIH",
@@ -244,7 +35,11 @@ const PUZZLES = {
   },
   NoMusic: {
     name: "No Music",
-    words: ["ACCURACY","ATTENTION","COMPLETION","CONCENTRATION","DISTRACTION","FOCUSED","LISTENING","LYRICS","MEMORIZE","PATTERNS","PROBLEM","REACTION","SEARCHING","SILENCE","THINKING"],
+    words: [
+      "ACCURACY", "ATTENTION", "COMPLETION", "CONCENTRATION", "DISTRACTION",
+      "FOCUSED", "LISTENING", "LYRICS", "MEMORIZE", "PATTERNS",
+      "PROBLEM", "REACTION", "SEARCHING", "SILENCE", "THINKING"
+    ],
     grid: [
       "SNOITCARTSIDPVVGTZ",
       "NENNSQKKEKWRIXKSGZ",
@@ -268,34 +63,8 @@ const PUZZLES = {
   }
 };
 
+const STORAGE_KEY = "word-search-results-v2";
 const TIMER_SECONDS = 180;
-const STORAGE_KEY = "wordSearchResultsShared";
-let activePuzzleName = "Music";
-let started = false;
-let timeLeft = TIMER_SECONDS;
-let timerInterval = null;
-let found = {};
-let startCell = null;
-let endCell = null;
-let selectedCells = [];
-let results = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-let resultSavedForRun = false;
-
-const timerEl = document.getElementById("timer");
-const participantEl = document.getElementById("participant");
-const startBtn = document.getElementById("startBtn");
-const resetBtn = document.getElementById("resetBtn");
-const musicTab = document.getElementById("musicTab");
-const noMusicTab = document.getElementById("noMusicTab");
-const puzzleTitle = document.getElementById("puzzleTitle");
-const foundCount = document.getElementById("foundCount");
-const doneStatus = document.getElementById("doneStatus");
-const gridEl = document.getElementById("letterGrid");
-const wordListEl = document.getElementById("wordList");
-const resultsBody = document.getElementById("resultsBody");
-const exportBtn = document.getElementById("exportBtn");
-const clearBtn = document.getElementById("clearBtn");
-const saveStatus = document.getElementById("saveStatus");
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -315,231 +84,258 @@ function getLineCells(start, end) {
 }
 
 function cellsToWord(grid, cells) {
-  return cells.map(({r, c}) => grid[r]?.[c] || "").join("");
+  return cells.map(({ r, c }) => grid[r]?.[c] ?? "").join("");
 }
 
-function currentPuzzle() {
-  return PUZZLES[activePuzzleName];
-}
+function WordSearchApp() {
+  const [activePuzzleName, setActivePuzzleName] = useState("Music");
+  const [started, setStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
+  const [found, setFound] = useState({});
+  const [startCell, setStartCell] = useState(null);
+  const [endCell, setEndCell] = useState(null);
+  const [results, setResults] = useState([]);
+  const [participant, setParticipant] = useState("");
 
-function updateTabs() {
-  musicTab.classList.toggle("active", activePuzzleName === "Music");
-  noMusicTab.classList.toggle("active", activePuzzleName === "NoMusic");
-}
+  const puzzle = PUZZLES[activePuzzleName];
+  const selectedCells = useMemo(() => getLineCells(startCell, endCell), [startCell, endCell]);
+  const foundWords = Object.keys(found).filter(Boolean);
+  const isDone = timeLeft === 0 || foundWords.length === puzzle.words.length;
 
-function renderGrid() {
-  const puzzle = currentPuzzle();
-  gridEl.style.gridTemplateColumns = `repeat(${puzzle.grid[0].length}, 1fr)`;
-  gridEl.innerHTML = "";
-  puzzle.grid.forEach((row, r) => {
-    row.split("").forEach((letter, c) => {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.textContent = letter;
-      cell.dataset.r = r;
-      cell.dataset.c = c;
-      cell.dataset.pos = `${r}-${c}`;
-      cell.addEventListener("mousedown", () => handleCellDown(r, c));
-      cell.addEventListener("mouseenter", () => handleCellEnter(r, c));
-      cell.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        handleCellDown(r, c);
-      }, {passive:false});
-      cell.addEventListener("touchmove", handleTouchMove, {passive:false});
-      gridEl.appendChild(cell);
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) setResults(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    if (!started || isDone) return;
+    const interval = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(interval);
+  }, [started, isDone]);
+
+  useEffect(() => {
+    if (!started || !isDone) return;
+    const record = {
+      id: crypto.randomUUID(),
+      date: new Date().toLocaleString(),
+      puzzle: activePuzzleName,
+      participant: participant.trim() || "Anonymous",
+      wordsFound: foundWords.length,
+      totalWords: puzzle.words.length,
+      timeUsedSeconds: TIMER_SECONDS - timeLeft,
+      timeRemainingSeconds: timeLeft,
+      completedAllWords: foundWords.length === puzzle.words.length,
+      words: foundWords.sort().join("; ")
+    };
+    setResults((prev) => {
+      const alreadySaved = prev.some((r) => r.id === record.id);
+      if (alreadySaved) return prev;
+      const updated = [record, ...prev];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
     });
-  });
-  refreshCellStyles();
-}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDone]);
 
-function renderWords() {
-  const puzzle = currentPuzzle();
-  wordListEl.innerHTML = "";
-  puzzle.words.forEach(word => {
-    const div = document.createElement("div");
-    div.className = "word" + (found[word] ? " done" : "");
-    div.textContent = (found[word] ? "✓ " : "") + word;
-    wordListEl.appendChild(div);
-  });
-}
-
-function renderResults() {
-  if (!results.length) {
-    resultsBody.innerHTML = `<tr><td colspan="6">No results yet.</td></tr>`;
-    return;
+  function resetPuzzle(name = activePuzzleName) {
+    setActivePuzzleName(name);
+    setStarted(false);
+    setTimeLeft(TIMER_SECONDS);
+    setFound({});
+    setStartCell(null);
+    setEndCell(null);
   }
-  resultsBody.innerHTML = results.map(r => `
-    <tr>
-      <td>${r.date}</td>
-      <td>${r.participant}</td>
-      <td>${r.puzzle}</td>
-      <td>${r.wordsFound}/${r.totalWords}</td>
-      <td>${r.timeUsedSeconds}s</td>
-      <td>${r.completedAllWords ? "Yes" : "No"}</td>
-    </tr>
-  `).join("");
-}
 
-function refreshCellStyles() {
-  document.querySelectorAll(".cell").forEach(cell => {
-    const r = Number(cell.dataset.r);
-    const c = Number(cell.dataset.c);
-    const isSelected = selectedCells.some(x => x.r === r && x.c === c);
-    const isFound = Object.values(found).some(cells => cells.some(x => x.r === r && x.c === c));
-    cell.classList.toggle("selected", isSelected);
-    cell.classList.toggle("found", isFound);
-  });
-}
-
-function renderAll() {
-  const puzzle = currentPuzzle();
-  timerEl.textContent = formatTime(timeLeft);
-  puzzleTitle.textContent = puzzle.name;
-  foundCount.textContent = `Words found: ${Object.keys(found).length} / ${puzzle.words.length}`;
-  updateTabs();
-  renderGrid();
-  renderWords();
-  renderResults();
-  const isDone = timeLeft === 0 || Object.keys(found).length === puzzle.words.length;
-  doneStatus.innerHTML = isDone && started ? `<span class="success">Result saved</span>` : "";
-}
-
-function startTimer() {
-  if (started) return;
-  started = true;
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timeLeft = Math.max(0, timeLeft - 1);
-    timerEl.textContent = formatTime(timeLeft);
-    if (timeLeft === 0) finishRun();
-  }, 1000);
-}
-
-function resetPuzzle(name = activePuzzleName) {
-  activePuzzleName = name;
-  started = false;
-  resultSavedForRun = false;
-  timeLeft = TIMER_SECONDS;
-  found = {};
-  startCell = null;
-  endCell = null;
-  selectedCells = [];
-  clearInterval(timerInterval);
-  timerInterval = null;
-  renderAll();
-}
-
-function handleCellDown(r, c) {
-  if (timeLeft === 0) return;
-  startTimer();
-  startCell = {r, c};
-  endCell = {r, c};
-  selectedCells = getLineCells(startCell, endCell);
-  refreshCellStyles();
-}
-
-function handleCellEnter(r, c) {
-  if (!startCell || timeLeft === 0) return;
-  endCell = {r, c};
-  selectedCells = getLineCells(startCell, endCell);
-  refreshCellStyles();
-}
-
-function handleTouchMove(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-  if (!el || !el.classList.contains("cell")) return;
-  handleCellEnter(Number(el.dataset.r), Number(el.dataset.c));
-}
-
-function finishSelection() {
-  if (!startCell || !endCell || timeLeft === 0) return;
-  const puzzle = currentPuzzle();
-  const cells = getLineCells(startCell, endCell);
-  const selected = cellsToWord(puzzle.grid, cells);
-  const reversed = selected.split("").reverse().join("");
-  const match = puzzle.words.find(word => word === selected || word === reversed);
-  if (match && !found[match]) {
-    found[match] = cells;
-    if (Object.keys(found).length === puzzle.words.length) finishRun();
+  function handleCellDown(r, c) {
+    if (!started) setStarted(true);
+    if (isDone) return;
+    setStartCell({ r, c });
+    setEndCell({ r, c });
   }
-  startCell = null;
-  endCell = null;
-  selectedCells = [];
-  renderAll();
-}
 
-async function sendToGoogleSheets(record) {
-  if (!GOOGLE_SCRIPT_URL) {
-    saveStatus.innerHTML = `<span class="warning">Saved locally only. Add your Google Apps Script URL to save to Sheets.</span>`;
-    return;
+  function handleCellEnter(r, c) {
+    if (!startCell || isDone) return;
+    setEndCell({ r, c });
   }
-  try {
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify(record)
-    });
-    saveStatus.innerHTML = `<span class="success">Result sent to Google Sheets.</span>`;
-  } catch (error) {
-    saveStatus.innerHTML = `<span class="warning">Could not send to Google Sheets, but it saved locally.</span>`;
+
+  function finishSelection() {
+    if (!startCell || !endCell || isDone) return;
+    const cells = getLineCells(startCell, endCell);
+    const selected = cellsToWord(puzzle.grid, cells);
+    const reversed = selected.split("").reverse().join("");
+    const match = puzzle.words.find((word) => word === selected || word === reversed);
+    if (match && !found[match]) {
+      setFound((prev) => ({ ...prev, [match]: cells }));
+    }
+    setStartCell(null);
+    setEndCell(null);
   }
+
+  function cellClass(r, c) {
+    const selected = selectedCells.some((cell) => cell.r === r && cell.c === c);
+    const solved = Object.values(found).some((cells) => cells.some((cell) => cell.r === r && cell.c === c));
+    if (selected) return "bg-slate-300";
+    if (solved) return "bg-emerald-200";
+    return "bg-white";
+  }
+
+  function exportCSV() {
+    const headers = ["date", "participant", "puzzle", "wordsFound", "totalWords", "timeUsedSeconds", "timeRemainingSeconds", "completedAllWords", "words"];
+    const rows = results.map((r) => headers.map((h) => `"${String(r[h] ?? "").replaceAll('"', '""')}"`).join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "word-search-results.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearResults() {
+    if (!confirm("Clear all saved results on this device?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    setResults([]);
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-100 p-3 sm:p-6 text-slate-900">
+      <div className="mx-auto max-w-5xl space-y-4">
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="text-2xl sm:text-4xl font-bold">Timed Word Search</h1>
+                <p className="text-sm sm:text-base text-slate-600">Choose a puzzle, find as many words as possible, and stop when the 3-minute timer ends.</p>
+              </div>
+              <div className="flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-white w-fit">
+                <Clock size={20} />
+                <span className="text-2xl font-bold tabular-nums">{formatTime(timeLeft)}</span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+              <input
+                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base"
+                placeholder="Participant name or number, optional"
+                value={participant}
+                onChange={(e) => setParticipant(e.target.value)}
+              />
+              <Button onClick={() => resetPuzzle()} variant="outline" className="rounded-xl"><RotateCcw className="mr-2" size={16} />Reset current puzzle</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Tabs value={activePuzzleName} onValueChange={(name) => resetPuzzle(name)}>
+          <TabsList className="grid w-full grid-cols-2 rounded-2xl h-12">
+            <TabsTrigger value="Music" className="rounded-xl">Music</TabsTrigger>
+            <TabsTrigger value="NoMusic" className="rounded-xl">No Music</TabsTrigger>
+          </TabsList>
+
+          {Object.keys(PUZZLES).map((name) => (
+            <TabsContent key={name} value={name} className="space-y-4">
+              <Card className="rounded-2xl shadow-sm">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold">{puzzle.name}</h2>
+                      <p className="text-sm text-slate-600">Words found: {foundWords.length} / {puzzle.words.length}</p>
+                    </div>
+                    {!started && <Button onClick={() => setStarted(true)} className="rounded-xl">Start Timer</Button>}
+                    {isDone && <div className="flex items-center gap-2 text-emerald-700 font-semibold"><Trophy size={20} /> Result saved</div>}
+                  </div>
+
+                  <div className="overflow-x-auto rounded-2xl bg-slate-200 p-2 touch-none select-none">
+                    <div
+                      className="grid gap-1 mx-auto w-max"
+                      style={{ gridTemplateColumns: `repeat(${puzzle.grid[0].length}, minmax(22px, 1fr))` }}
+                      onMouseLeave={finishSelection}
+                      onMouseUp={finishSelection}
+                      onTouchEnd={finishSelection}
+                    >
+                      {puzzle.grid.map((row, r) => row.split("").map((letter, c) => (
+                        <button
+                          key={`${r}-${c}`}
+                          className={`h-7 w-7 sm:h-9 sm:w-9 rounded-md text-sm sm:text-lg font-mono font-semibold shadow-sm ${cellClass(r, c)}`}
+                          onMouseDown={() => handleCellDown(r, c)}
+                          onMouseEnter={() => handleCellEnter(r, c)}
+                          onTouchStart={() => handleCellDown(r, c)}
+                          onTouchMove={(e) => {
+                            const touch = e.touches[0];
+                            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                            const pos = el?.getAttribute?.("data-pos");
+                            if (pos) {
+                              const [rr, cc] = pos.split("-").map(Number);
+                              handleCellEnter(rr, cc);
+                            }
+                          }}
+                          data-pos={`${r}-${c}`}
+                        >
+                          {letter}
+                        </button>
+                      )))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {puzzle.words.map((word) => (
+                      <div key={word} className={`rounded-xl px-3 py-2 text-sm font-semibold ${found[word] ? "bg-emerald-100 text-emerald-800 line-through" : "bg-white"}`}>
+                        {found[word] && <CheckCircle2 className="inline mr-1" size={14} />}{word}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold">Timing History</h2>
+                <p className="text-sm text-slate-600">Results are saved on this device/browser. Export CSV to collect class data.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={exportCSV} disabled={!results.length} className="rounded-xl"><Download className="mr-2" size={16} />Export CSV</Button>
+                <Button onClick={clearResults} disabled={!results.length} variant="outline" className="rounded-xl">Clear</Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border bg-white">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-100 text-left">
+                  <tr>
+                    <th className="p-2">Date</th>
+                    <th className="p-2">Participant</th>
+                    <th className="p-2">Puzzle</th>
+                    <th className="p-2">Words</th>
+                    <th className="p-2">Time Used</th>
+                    <th className="p-2">Completed?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.length === 0 ? (
+                    <tr><td colSpan="6" className="p-4 text-center text-slate-500">No results yet.</td></tr>
+                  ) : results.map((r) => (
+                    <tr key={r.id} className="border-t">
+                      <td className="p-2 whitespace-nowrap">{r.date}</td>
+                      <td className="p-2">{r.participant}</td>
+                      <td className="p-2">{r.puzzle}</td>
+                      <td className="p-2">{r.wordsFound}/{r.totalWords}</td>
+                      <td className="p-2">{r.timeUsedSeconds}s</td>
+                      <td className="p-2">{r.completedAllWords ? "Yes" : "No"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
 
-function finishRun() {
-  if (resultSavedForRun) return;
-  resultSavedForRun = true;
-  clearInterval(timerInterval);
-  const puzzle = currentPuzzle();
-  const record = {
-    id: Date.now() + "-" + Math.random().toString(16).slice(2),
-    date: new Date().toLocaleString(),
-    participant: participantEl.value.trim() || "Anonymous",
-    puzzle: puzzle.name,
-    wordsFound: Object.keys(found).length,
-    totalWords: puzzle.words.length,
-    timeUsedSeconds: TIMER_SECONDS - timeLeft,
-    timeRemainingSeconds: timeLeft,
-    completedAllWords: Object.keys(found).length === puzzle.words.length,
-    words: Object.keys(found).sort().join("; ")
-  };
-  results = [record, ...results];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
-  sendToGoogleSheets(record);
-  renderAll();
-}
-
-function exportCSV() {
-  const headers = ["date","participant","puzzle","wordsFound","totalWords","timeUsedSeconds","timeRemainingSeconds","completedAllWords","words"];
-  const rows = results.map(r => headers.map(h => `"${String(r[h] || "").replaceAll('"','""')}"`).join(","));
-  const csv = [headers.join(","), ...rows].join("\n");
-  const blob = new Blob([csv], {type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "word-search-results.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-startBtn.addEventListener("click", startTimer);
-resetBtn.addEventListener("click", () => resetPuzzle());
-musicTab.addEventListener("click", () => resetPuzzle("Music"));
-noMusicTab.addEventListener("click", () => resetPuzzle("NoMusic"));
-gridEl.addEventListener("mouseup", finishSelection);
-gridEl.addEventListener("mouseleave", finishSelection);
-gridEl.addEventListener("touchend", finishSelection);
-exportBtn.addEventListener("click", exportCSV);
-clearBtn.addEventListener("click", () => {
-  if (!confirm("Clear saved results on this device?")) return;
-  results = [];
-  localStorage.removeItem(STORAGE_KEY);
-  renderResults();
-});
-
-renderAll();
-</script>
-</body>
-</html>
+export default WordSearchApp;
